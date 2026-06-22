@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FinTrack Pro - Personal Finance</title>
     
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Alpine, Tailwind & Chart.js -->
     <script src="https://unpkg.com/alpinejs" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -42,12 +44,22 @@
         }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Tambahan CSS khusus pembersih style tanggal di perangkat mobile/iOS */
+        input[type="date"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            min-height: 52px !important;
+        }
     </style>
 </head>
 <body class="text-gray-800 font-sans min-h-screen pb-28 relative" x-data="financeApp()">
 
+    <!-- WRAPPER MOBILE -->
     <div class="max-w-md mx-auto bg-[#f8f9fb] min-h-screen relative shadow-sm">
 
+        <!-- ================= DYNAMIC HEADER ================= -->
         <header class="px-5 pt-8 pb-4 sticky top-0 bg-[#f8f9fb]/90 backdrop-blur-md z-30" x-show="activeTab !== 'dashboard'" style="display: none;">
             <div class="flex justify-between items-center">
                 <button @click="activeTab = 'dashboard'" class="text-gray-800 p-2 -ml-2 active:scale-90 transition"><i class="fa-solid fa-arrow-left"></i></button>
@@ -58,7 +70,9 @@
 
         <main class="px-5 pb-6">
             
+            <!-- ================= DASHBOARD TAB ================= -->
             <div x-show="activeTab === 'dashboard'" class="space-y-6 pt-6">
+                <!-- Dashboard Header -->
                 <div class="flex justify-between items-center mb-6">
                     <button @click="sidebarOpen = true" class="text-gray-800 text-xl p-1"><i class="fa-solid fa-bars"></i></button>
                     <div class="relative">
@@ -69,12 +83,14 @@
                     </div>
                 </div>
 
+                <!-- Greeting -->
                 <div>
                     <p class="text-sm font-semibold text-gray-800 mb-1">Hi, Putri 👋</p>
                     <h1 class="text-[32px] font-serif leading-tight text-gray-900">Everythings is good, right?!</h1>
                     <p class="text-sm text-gray-500 mt-1">Here's your financial overview</p>
                 </div>
 
+                <!-- Main Balance Card -->
                 <div class="bg-brand-500 text-white rounded-[28px] p-6 shadow-[0_8px_30px_rgba(54,81,120,0.3)] relative overflow-hidden">
                     <div class="relative z-10">
                         <div class="flex justify-between items-start">
@@ -96,6 +112,7 @@
                     </svg>
                 </div>
 
+                <!-- Quick Actions -->
                 <div class="grid grid-cols-4 gap-2 pt-2 text-center">
                     <button @click="openModalWith('Expense')" class="flex flex-col items-center gap-2 group active:scale-95 transition">
                         <div class="w-12 h-12 rounded-full bg-white shadow-xs text-rose-500 flex items-center justify-center text-lg">
@@ -126,6 +143,7 @@
                     </button>
                 </div>
 
+                <!-- Daily Spending Accounts Overview -->
                 <div class="pt-2">
                     <h3 class="font-bold text-gray-400 text-xs mb-3 px-1 uppercase tracking-wider">Daily Spending Accounts</h3>
                     <div class="grid grid-cols-2 gap-3">
@@ -143,6 +161,7 @@
                     </div>
                 </div>
 
+                <!-- Quick Overview List -->
                 <div class="pt-2">
                     <div class="flex justify-between items-center mb-4 px-1">
                         <h3 class="font-bold text-gray-900 text-lg">Quick Overview</h3>
@@ -197,6 +216,7 @@
                 </div>
             </div>
 
+            <!-- ================= TRANSACTIONS TAB ================= -->
             <div x-show="activeTab === 'transactions'" class="space-y-4 pt-2">
                 <div class="flex bg-white p-1.5 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.02)] mb-4 overflow-x-auto hide-scrollbar">
                     <template x-for="filter in ['All', 'Income', 'Expense', 'Goal / Asset', 'Transfer', 'Hutang / Piutang']" :key="filter">
@@ -227,6 +247,7 @@
                 </div>
             </div>
 
+            <!-- ================= BUDGET TAB ================= -->
             <div x-show="activeTab === 'budget'" class="space-y-6 pt-2">
                 <div class="bg-white rounded-[28px] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
                     <div class="flex justify-between items-center border-b pb-3">
@@ -290,6 +311,7 @@
                 </div>
             </div>
 
+            <!-- ================= GOALS, ASSETS & DEBTS TAB ================= -->
             <div x-show="activeTab === 'targets'" class="space-y-6 pt-2">
                 <div>
                     <div class="flex justify-between items-center mb-3 px-1">
@@ -344,6 +366,7 @@
                 </div>
             </div>
 
+            <!-- ================= MY ACCOUNTS TAB ================= -->
             <div x-show="activeTab === 'accounts'" class="space-y-6 pt-2">
                 <template x-for="groupName in Object.keys(groupedAccounts)" :key="groupName">
                     <div class="bg-white rounded-[24px] p-5 shadow-xs">
@@ -368,6 +391,7 @@
                 </template>
             </div>
 
+            <!-- ================= REPORTS TAB ================= -->
             <div x-show="activeTab === 'reports'" class="space-y-4 pt-2" x-init="$watch('activeTab', value => { if(value === 'reports') setTimeout(() => { renderChart(); }, 100); })">
                 <div class="bg-white p-5 rounded-[24px] shadow-xs space-y-4">
                     <h3 class="font-bold text-gray-900 text-base border-b pb-2">Type Allocation Breakdowns</h3>
@@ -419,6 +443,7 @@
 
         </main>
 
+        <!-- ================= SIDEBAR (SETTINGS) ================= -->
         <div x-show="sidebarOpen" class="fixed inset-0 z-50 flex bg-black/40 backdrop-blur-xs" @click.self="sidebarOpen = false" style="display: none;">
             <div class="bg-white w-80 h-full p-5 space-y-4 shadow-2xl flex flex-col" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="-translate-x-full">
                 <div class="flex justify-between items-center border-b pb-3">
@@ -455,6 +480,7 @@
             </div>
         </div>
 
+        <!-- ================= OVERBUDGET ALERTS BOX ================= -->
         <div x-show="notifOpen" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/30 backdrop-blur-xs" style="display: none;" @click.self="notifOpen = false">
             <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-xl">
                 <div class="flex justify-between items-center border-b pb-2">
@@ -475,6 +501,7 @@
             </div>
         </div>
 
+        <!-- ================= BOTTOM NAVIGATION ================= -->
         <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center z-40 rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.03)] max-w-md mx-auto">
             <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'text-brand-500' : 'text-gray-300'" class="flex flex-col items-center gap-1 transition">
                 <i class="fa-solid fa-house text-xl"></i>
@@ -498,6 +525,7 @@
             </button>
         </nav>
 
+        <!-- ================= TRANSACTION MODAL ================= -->
         <div x-show="modals.transaction" class="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-50 flex items-end justify-center" x-transition style="display: none;">
             <form @submit.prevent="saveTransaction()" class="bg-white w-full max-w-md rounded-t-[32px] p-6 space-y-5 max-h-[90vh] overflow-y-auto shadow-2xl">
                 <div class="flex justify-between items-center pb-2">
@@ -527,14 +555,16 @@
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4 items-start">
+                    <!-- PERBAIKAN STRUKTUR UTAMA KOLOM GRID TANGGAL & AKUN -->
+                    <div class="grid grid-cols-2 gap-4 items-end">
                         <div class="flex flex-col">
                             <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Date *</label>
-                            <input type="date" x-model="form.tx.date" required class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 h-[52px]">
+                            <!-- Menggunakan penyeimbang kelas utilitas w-full h-[52px] rounded-2xl appearance-none -->
+                            <input type="date" x-model="form.tx.date" required class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 h-[52px] appearance-none focus:outline-none focus:ring-2 focus:ring-brand-200">
                         </div>
                         <div class="flex flex-col">
                             <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1 min-h-[16px]" x-text="form.tx.type === 'Goal / Asset' ? 'Sumber Rekening *' : 'Dari Akun / Rekening *'"></label>
-                            <select x-model="form.tx.account" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 h-[52px]">
+                            <select x-model="form.tx.account" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 h-[52px] focus:outline-none focus:ring-2 focus:ring-brand-200">
                                 <template x-for="acc in Object.keys(accounts)" :key="acc">
                                     <option :value="acc" x-text="acc"></option>
                                 </template>
@@ -545,7 +575,7 @@
                     <div class="grid grid-cols-2 gap-3" x-show="form.tx.type === 'Income' || form.tx.type === 'Expense'">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Main Category</label>
-                            <select x-model="form.tx.mainCategory" @change="updateSubCategories()" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                            <select x-model="form.tx.mainCategory" @change="updateSubCategories()" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                                 <template x-for="cat in Object.keys(categories[form.tx.type.toLowerCase() || 'expense'])" :key="cat">
                                     <option :value="cat" x-text="getCategoryEmoji(cat) + ' ' + cat"></option>
                                 </template>
@@ -553,7 +583,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Sub Category</label>
-                            <select x-model="form.tx.subCategory" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                            <select x-model="form.tx.subCategory" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                                 <option value="">None</option>
                                 <template x-for="sub in subCategoriesList" :key="sub">
                                     <option :value="sub" x-text="sub"></option>
@@ -564,7 +594,7 @@
 
                     <div x-show="form.tx.type === 'Transfer'">
                         <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Kirim / Simpan Ke Rekening *</label>
-                        <select x-model="form.tx.transferTo" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                        <select x-model="form.tx.transferTo" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                             <template x-for="acc in Object.keys(accounts)" :key="acc">
                                 <option :value="acc" x-text="acc" :disabled="acc === form.tx.account"></option>
                             </template>
@@ -575,19 +605,19 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Simpan Sebagai *</label>
-                                <select x-model="goalAssetType" @change="updateGoalAssetDestinations()" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                                <select x-model="goalAssetType" @change="updateGoalAssetDestinations()" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                                     <option value="Saving Goals">Saving Goals (Tabungan)</option>
                                     <option value="Investasi">Investasi (Emas, Saham, dll)</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Alokasi Tujuan *</label>
-                                <select x-model="form.tx.transferTo" x-show="goalAssetType === 'Saving Goals'" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                                <select x-model="form.tx.transferTo" x-show="goalAssetType === 'Saving Goals'" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                                     <template x-for="g in savingsGoals" :key="g.id">
                                         <option :value="g.name" x-text="g.name"></option>
                                     </template>
                                 </select>
-                                <select x-model="form.tx.transferTo" x-show="goalAssetType === 'Investasi'" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                                <select x-model="form.tx.transferTo" x-show="goalAssetType === 'Investasi'" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                                     <template x-for="sub in categories.saveinvest['Investasi']" :key="sub">
                                         <option :value="sub" x-text="sub"></option>
                                     </template>
@@ -600,7 +630,7 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Aksi Pencatatan *</label>
-                                <select x-model="form.tx.subCategory" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                                <select x-model="form.tx.subCategory" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                                     <option value="Hutang Baru">Hutang Baru (Kita Pinjam)</option>
                                     <option value="Cicilan Hutang">Cicilan Hutang Kita</option>
                                     <option value="Pelunasan Hutang">Pelunasan Hutang Kita</option>
@@ -615,7 +645,7 @@
                                     <input type="text" x-model="form.tx.transferTo" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700" placeholder="Tulis di Notes ↓" disabled>
                                 </div>
                                 <div x-show="form.tx.subCategory !== 'Hutang Baru' && form.tx.subCategory !== 'Piutang Baru'">
-                                    <select x-model="form.tx.transferTo" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700">
+                                    <select x-model="form.tx.transferTo" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200">
                                         <template x-for="item in debtLedger" :key="item.name">
                                             <option :value="item.name" x-text="item.name + ' ('+item.type+')'"></option>
                                         </template>
@@ -627,7 +657,7 @@
 
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1.5 ml-1" x-text="form.tx.type === 'Hutang / Piutang' ? 'Notes / Nama Pihak (Wajib diisi untuk rekam baru) *' : 'Notes'"></label>
-                        <input type="text" x-model="form.tx.notes" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700" :placeholder="form.tx.type === 'Hutang / Piutang' ? 'e.g., hutang ke A' : 'Details...'">
+                        <input type="text" x-model="form.tx.notes" class="w-full bg-[#f8f9fb] border-none p-3.5 rounded-2xl font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-200" :placeholder="form.tx.type === 'Hutang / Piutang' ? 'e.g., hutang ke A' : 'Details...'">
                     </div>
                 </div>
 
@@ -635,6 +665,7 @@
             </form>
         </div>
 
+        <!-- Create Saving Goal Modal -->
         <div x-show="modals.saving" class="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-50 flex items-end justify-center" x-transition style="display: none;" @click.self="closeModal('saving')">
             <div class="bg-white w-full max-w-md rounded-t-[32px] p-6 space-y-5 shadow-2xl">
                 <div class="flex justify-between items-center pb-2">
@@ -663,6 +694,7 @@
 
     </div>
 
+    <!-- CORE LOGIC ENGINE -->
     <script>
         let pieChartInstance = null;
 
@@ -671,7 +703,7 @@
                 activeTab: 'dashboard',
                 txFilter: 'All',
                 timeFilter: 'this_month',
-                budgetFilter: 'this_month', // POINT 2: TIME FILTER SPECIFIC TRACKER FOR BUDGET PAGE
+                budgetFilter: 'this_month',
                 modals: { transaction: false, saving: false },
                 sidebarOpen: false,
                 notifOpen: false,
@@ -794,17 +826,15 @@
                 },
                 getCategoryEmoji(cat) { return this.emojis[cat] || '📝'; },
 
-                // POINT 1: COMPUTED PROPERTY TO RETURN TRANSACTIONS STRICTLY SORTED BY RECENT DATE FIRST
                 get sortedTransactions() {
                     return [...this.transactions].sort((a, b) => {
                         const dateA = new Date(a.date);
                         const dateB = new Date(b.date);
                         if (dateB - dateA !== 0) return dateB - dateA;
-                        return b.id - a.id; // Secondary sorting on ID uniqueness timeline
+                        return b.id - a.id;
                     });
                 },
 
-                // POINT 3: DYNAMIC TIMELINE HANDLER LOGIC FOR HOME SCREEN SELECTOR
                 isTxInTimeFilter(txDateStr, filterValue) {
                     if (!txDateStr) return false;
                     const d = new Date(txDateStr);
@@ -814,13 +844,11 @@
                     } else if (filterValue === 'ytd') {
                         return d.getFullYear() === now.getFullYear() && d <= now;
                     } else {
-                        // Numeric individual target month checks (0 = January, 11 = December)
                         const targetMonth = parseInt(filterValue, 10);
                         return d.getMonth() === targetMonth && d.getFullYear() === now.getFullYear();
                     }
                 },
 
-                // POINT 2: ENGINE SEPARATOR LOGIC TO MATCH BUDGET WINDOW CALCULATIONS
                 isTxInBudgetFilter(txDateStr) {
                     if (!txDateStr) return false;
                     const d = new Date(txDateStr);
@@ -869,6 +897,7 @@
                         this.form.tx.mainCategory = Object.keys(this.categories[type])[0];
                         this.updateSubCategories();
                     } else if (type === 'goal / asset') {
+                        this.goalAssetType = 'Saving Goals';
                         this.form.tx.mainCategory = this.goalAssetType;
                         this.updateGoalAssetDestinations();
                     } else if (type === 'transfer') {
@@ -995,7 +1024,6 @@
                     this.savingsGoals.forEach(g => g.current = 0);
                     let debtMap = {};
 
-                    // Calculation parses all rows to maintain strict wallet balances correctly
                     this.transactions.slice().reverse().forEach(tx => {
                         const amt = Number(tx.amount);
                         
@@ -1041,14 +1069,12 @@
                     localStorage.setItem('fintrack_pro_ledger_core_savings', JSON.stringify(this.savingsGoals));
                 },
 
-                // OVERVIEW METRICS (DYNAMIC ACCORDING TO USER SELECTED TIMELINE DROPDOWN)
                 getTotalIncome() { return this.transactions.filter(t => t.type === 'Income' && this.isTxInTimeFilter(t.date, this.timeFilter)).reduce((sum, t) => sum + Number(t.amount), 0); },
                 getTotalExpenses() { return this.transactions.filter(t => t.type === 'Expense' && this.isTxInTimeFilter(t.date, this.timeFilter)).reduce((sum, t) => sum + Number(t.amount), 0); },
                 getNetCashFlow() { return Object.values(this.accounts).reduce((sum, acc) => sum + acc.balance, 0); },
                 getTotalSavings() { return this.savingsGoals.reduce((sum, g) => sum + Number(g.current), 0); },
                 getTotalInvestments() { return Object.values(this.investments).reduce((sum, v) => sum + v, 0); },
 
-                // Kategori pengeluaran khusus halaman Reports
                 getExpenseByCategory() {
                     let map = {};
                     this.transactions.filter(t => t.type === 'Expense' && this.isTxInTimeFilter(t.date, 'this_month')).forEach(t => {
@@ -1057,7 +1083,6 @@
                     return map;
                 },
 
-                // POINT 2: TOTAL EXPENSES TIME-FILTER LINKED FOR SPECIFIC BUDGET OVERVIEW PAGE
                 getExpenseByCategoryForBudget() {
                     return this.transactions.filter(t => t.type === 'Expense' && this.isTxInBudgetFilter(t.date)).reduce((sum, t) => sum + Number(t.amount), 0);
                 },
