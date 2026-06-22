@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FinTrack - Personal Finance</title>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-24" x-data="financeApp()">
+
+    <!-- TOP HEADER -->
+    <header class="bg-indigo-600 text-white px-4 pt-6 pb-4 rounded-b-3xl shadow-md sticky top-0 z-40">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-xs text-indigo-200">Welcome Back</p>
+                <h1 class="text-xl font-bold">My Finances</h1>
+            </div>
+            <button @click="openModal('transaction')" class="bg-white text-indigo-600 px-3 py-2 rounded-full font-bold text-sm shadow-sm flex items-center gap-1 active:scale-95 transition">
+                <i class="fa-solid fa-plus"></i> Add
+            </button>
+        </div>
+    </header>
+
+    <main class="px-4 mt-4 max-w-md mx-auto">
+        
+        <!-- ================= DASHBOARD TAB ================= -->
+        <div x-show="activeTab === 'dashboard'" class="space-y-4">
+            <!-- Summary Card Carousel/Stack -->
+            <div class="bg-gradient-to-br from-gray-900 to-indigo-950 text-white p-5 rounded-2xl shadow-xl space-y-4">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider">Net Cash Flow</p>
+                    <h2 class="text-3xl font-extrabold mt-1" :class="getNetCashFlow() >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatIDR(getNetCashFlow())"></h2>
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-800">
+                    <div>
+                        <p class="text-xs text-gray-400">Total Income</p>
+                        <p class="text-base font-bold text-emerald-400" x-text="formatIDR(getTotalIncome())"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400">Total Expenses</p>
+                        <p class="text-base font-bold text-rose-400" x-text="formatIDR(getTotalExpenses())"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-800">
+                    <div>
+                        <p class="text-xs text-gray-400">Total Savings</p>
+                        <p class="text-sm font-semibold text-blue-400" x-text="formatIDR(getTotalSavings())"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400">Total Investments</p>
+                        <p class="text-sm font-semibold text-amber-400" x-text="formatIDR(getTotalInvestments())"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-gray-700">Recent Transactions</h3>
+                    <button @click="activeTab = 'transactions'" class="text-xs font-semibold text-indigo-600">View All</button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden">
+                    <template x-for="tx in transactions.slice(0, 5)" :key="tx.id">
+                        <div class="p-4 flex justify-between items-center active:bg-gray-50" @click="editTransaction(tx)">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm" :class="getTxBg(tx.type)">
+                                    <i :class="getTxIcon(tx.type)"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-sm text-gray-800" x-text="tx.subCategory || tx.mainCategory"></p>
+                                    <p class="text-xs text-gray-400" x-text="tx.account + ' • ' + formatDate(tx.date)"></p>
+                                </div>
+                            </div>
+                            <p class="font-bold text-sm" :class="getTxColor(tx.type)" x-text="(tx.type === 'Expense' ? '-' : '+') + formatIDR(tx.amount)"></p>
+                        </div>
+                    </template>
+                    <template x-if="transactions.length === 0">
+                        <p class="text-center p-6 text-gray-400 text-sm">No recent transactions recorded.</p>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TRANSACTIONS TAB ================= -->
+        <div x-show="activeTab === 'transactions'" class="space-y-4">
+            <h3 class="font-bold text-xl text-gray-800">Transaction History</h3>
+            <div class="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
+                <template x-for="tx in transactions" :key="tx.id">
+                    <div class="p-4 flex justify-between items-center" @click="editTransaction(tx)">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm" :class="getTxBg(tx.type)">
+                                <i :class="getTxIcon(tx.type)"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-sm text-gray-800" x-text="tx.subCategory || tx.mainCategory"></p>
+                                <p class="text-xs text-gray-400" x-text="tx.account + ' • ' + formatDate(tx.date)"></p>
+                                <p x-if="tx.notes" class="text-xs italic text-gray-500" x-text="tx.notes"></p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-sm" :class="getTxColor(tx.type)" x-text="(tx.type === 'Expense' ? '-' : '+') + formatIDR(tx.amount)"></p>
+                            <button @click.stop="deleteTransaction(tx.id)" class="text-xs text-rose-500 mt-1 uppercase tracking-wider">Delete</button>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="transactions.length === 0">
+                    <p class="text-center p-6 text-gray-400 text-sm">No history yet.</p>
+                </template>
+            </div>
+        </div>
+
+        <!-- ================= ACCOUNTS TAB ================= -->
+        <div x-show="activeTab === 'accounts'" class="space-y-4">
+            <h3 class="font-bold text-xl text-gray-800">Bank Accounts</h3>
+            <div class="grid grid-cols-1 gap-3">
+                <template x-for="acc in Object.keys(accounts)" :key="acc">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-indigo-900 text-lg" x-text="acc"></h4>
+                            <div class="flex gap-4 mt-1 text-xs text-gray-400">
+                                <span>In: <span class="text-emerald-500 font-medium" x-text="formatIDR(getAccountStats(acc).income)"></span></span>
+                                <span>Out: <span class="text-rose-500 font-medium" x-text="formatIDR(getAccountStats(acc).expense)"></span></span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-400">Current Balance</p>
+                            <p class="font-bold text-gray-800 text-base" x-text="formatIDR(accounts[acc].balance)"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ================= SAVINGS & INVESTMENTS TAB ================= -->
+        <div x-show="activeTab === 'targets'" class="space-y-6">
+            <!-- Savings Goals -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-xl text-gray-800">Savings Goals</h3>
+                    <button @click="openModal('saving')" class="text-xs bg-indigo-50 text-indigo-600 font-bold px-3 py-1 rounded-full">+ Target</button>
+                </div>
+                <div class="space-y-3">
+                    <template x-for="goal in savingsGoals" :key="goal.id">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex justify-between text-sm font-semibold text-gray-700 mb-1">
+                                <span x-text="goal.name"></span>
+                                <span x-text="Math.round((goal.current / goal.target) * 100) + '%'"></span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                                <div class="bg-indigo-600 h-2 rounded-full" :style="'width: ' + Math.min((goal.current / goal.target) * 100, 100) + '%'"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-400">
+                                <span x-text="'Current: ' + formatIDR(goal.current)"></span>
+                                <span x-text="'Target: ' + formatIDR(goal.target)"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Investments -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-xl text-gray-800">Investments Portfolio</h3>
+                    <button @click="openModal('investment')" class="text-xs bg-amber-50 text-amber-700 font-bold px-3 py-1 rounded-full">+ Log Asset</button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden">
+                    <template x-for="inv in investments" :key="inv.id">
+                        <div class="p-4 flex justify-between items-center">
+                            <div>
+                                <p class="font-bold text-sm text-gray-800" x-text="inv.name"></p>
+                                <p class="text-xs text-gray-400" x-text="formatDate(inv.date)"></p>
+                                <p x-show="inv.notes" class="text-xs italic text-gray-500" x-text="inv.notes"></p>
+                            </div>
+                            <p class="font-bold text-amber-600 text-sm" x-text="formatIDR(inv.amount)"></p>
+                        </div>
+                    </template>
+                    <template x-if="investments.length === 0">
+                        <p class="text-center p-6 text-gray-400 text-sm">No investment allocations logged.</p>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= REPORTS TAB ================= -->
+        <div x-show="activeTab === 'reports'" class="space-y-4">
+            <h3 class="font-bold text-xl text-gray-800">Monthly Reports</h3>
+            
+            <div class="bg-white p-4 rounded-2xl shadow-sm space-y-4">
+                <h4 class="font-semibold text-gray-700 text-sm border-b pb-2">Expenses by Category</h4>
+                <div class="space-y-3">
+                    <template x-for="cat in Object.keys(getExpenseByCategory())" :key="cat">
+                        <div>
+                            <div class="flex justify-between text-xs font-medium text-gray-600 mb-1">
+                                <span x-text="cat"></span>
+                                <span x-text="formatIDR(getExpenseByCategory()[cat])"></span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5">
+                                <div class="bg-rose-500 h-1.5 rounded-full" :style="'width: ' + (getExpenseByCategory()[cat] / getTotalExpenses() * 100) + '%'"></div>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="Object.keys(getExpenseByCategory()).length === 0">
+                        <p class="text-xs text-gray-400 italic">No expenses recorded for breakdown.</p>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ================= MODALS ================= -->
+    <!-- 1. Transaction Form Modal -->
+    <div x-show="modals.transaction" class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" x-transition>
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-lg text-gray-800" x-text="form.tx.id ? 'Edit Transaction' : 'Add Transaction'"></h3>
+                <button @click="closeModal('transaction')" class="text-gray-400 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="flex bg-gray-100 p-1 rounded-xl">
+                <template x-for="type in ['Income', 'Expense', 'Transfer', 'Investment']" :key="type">
+                    <button @click="form.tx.type = type; updateCategories();" 
+                            :class="form.tx.type === type ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'"
+                            class="flex-1 py-2 text-center text-xs font-bold rounded-lg transition" x-text="type"></button>
+                </template>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Amount (IDR)</label>
+                    <input type="number" x-model.number="form.tx.amount" class="w-full border p-3 rounded-xl focus:outline-indigo-500 text-base font-bold" placeholder="0">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Date</label>
+                        <input type="date" x-model="form.tx.date" class="w-full border p-3 rounded-xl focus:outline-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Account</label>
+                        <select x-model="form.tx.account" class="w-full border p-3 rounded-xl focus:outline-indigo-500">
+                            <template x-for="acc in Object.keys(accounts)" :key="acc">
+                                <option :value="acc" x-text="acc"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2" x-show="form.tx.type === 'Income' || form.tx.type === 'Expense'">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Main Category</label>
+                        <select x-model="form.tx.mainCategory" @change="updateSubCategories()" class="w-full border p-3 rounded-xl focus:outline-indigo-500">
+                            <template x-for="cat in Object.keys(categories[form.tx.type.toLowerCase()])" :key="cat">
+                                <option :value="cat" x-text="cat"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Sub Category</label>
+                        <select x-model="form.tx.subCategory" class="w-full border p-3 rounded-xl focus:outline-indigo-500">
+                            <option value="">None</option>
+                            <template x-for="sub in subCategoriesList" :key="sub">
+                                <option :value="sub" x-text="sub"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <div x-show="form.tx.type === 'Transfer'">
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Transfer Destination Account</label>
+                    <select x-model="form.tx.transferTo" class="w-full border p-3 rounded-xl focus:outline-indigo-500">
+                        <template x-for="acc in Object.keys(accounts)" :key="acc">
+                            <option :value="acc" x-text="acc" :disabled="acc === form.tx.account"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Notes</label>
+                    <input type="text" x-model="form.tx.notes" class="w-full border p-3 rounded-xl focus:outline-indigo-500" placeholder="Optional notes...">
+                </div>
+            </div>
+
+            <button @click="saveTransaction()" class="w-full bg-indigo-600 text-white font-bold p-3.5 rounded-xl shadow-md active:scale-95 transition">Save Entry</button>
+        </div>
+    </div>
+
+    <!-- 2. Savings Goal Modal -->
+    <div x-show="modals.saving" class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" x-transition>
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-lg text-gray-800">Add Savings Goal</h3>
+                <button @click="closeModal('saving')" class="text-gray-400 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Goal Name</label>
+                    <input type="text" x-model="form.saving.name" class="w-full border p-3 rounded-xl" placeholder="e.g., Emergency Fund">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Target Amount (IDR)</label>
+                    <input type="number" x-model.number="form.saving.target" class="w-full border p-3 rounded-xl" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Initial Funded Amount (IDR)</label>
+                    <input type="number" x-model.number="form.saving.current" class="w-full border p-3 rounded-xl" placeholder="0">
+                </div>
+            </div>
+            <button @click="saveSavingGoal()" class="w-full bg-indigo-600 text-white font-bold p-3.5 rounded-xl">Save Goal</button>
+        </div>
+    </div>
+
+    <!-- 3. Investment Log Modal -->
+    <div x-show="modals.investment" class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" x-transition>
+        <div class="bg-white w-full max-w-md rounded-t-3xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-lg text-gray-800">Log Investment Allocation</h3>
+                <button @click="closeModal('investment')" class="text-gray-400 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Asset Category</label>
+                    <select x-model="form.investment.name" class="w-full border p-3 rounded-xl">
+                        <option value="Bibit">Bibit</option>
+                        <option value="Stocks">Stocks</option>
+                        <option value="Mutual Funds">Mutual Funds</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Forex">Forex</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Amount Investment (IDR)</label>
+                    <input type="number" x-model.number="form.investment.amount" class="w-full border p-3 rounded-xl" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Notes</label>
+                    <input type="text" x-model="form.investment.notes" class="w-full border p-3 rounded-xl" placeholder="Portfolio info/ticker symbol">
+                </div>
+            </div>
+            <button @click="saveInvestment()" class="w-full bg-amber-600 text-white font-bold p-3.5 rounded-xl">Add Asset Entry</button>
+        </div>
+    </div>
+
+
+    <!-- BOTTOM NAVIGATION (One-Hand optimization) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-2xl px-2 py-2 flex justify-around items-center z-40 max-w-md mx-auto">
+        <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'text-indigo-600 font-bold' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 flex-1 py-1">
+            <i class="fa-solid fa-chart-pie text-lg"></i>
+            <span class="text-[10px]">Home</span>
+        </button>
+        <button @click="activeTab = 'transactions'" :class="activeTab === 'transactions' ? 'text-indigo-600 font-bold' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 flex-1 py-1">
+            <i class="fa-solid fa-list-ul text-lg"></i>
+            <span class="text-[10px]">History</span>
+        </button>
+        <button @click="activeTab = 'accounts'" :class="activeTab === 'accounts' ? 'text-indigo-600 font-bold' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 flex-1 py-1">
+            <i class="fa-solid fa-wallet text-lg"></i>
+            <span class="text-[10px]">Banks</span>
+        </button>
+        <button @click="activeTab = 'targets'" :class="activeTab === 'targets' ? 'text-indigo-600 font-bold' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 flex-1 py-1">
+            <i class="fa-solid fa-bullseye text-lg"></i>
+            <span class="text-[10px]">Goals</span>
+        </button>
+        <button @click="activeTab = 'reports'" :class="activeTab === 'reports' ? 'text-indigo-600 font-bold' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 flex-1 py-1">
+            <i class="fa-solid fa-chart-line text-lg"></i>
+            <span class="text-[10px]">Reports</span>
+        </button>
+    </nav>
+
+    <!-- CORE LOGIC ENGINE -->
+    <script>
+        function financeApp() {
+            return {
+                activeTab: 'dashboard',
+                modals: { transaction: false, saving: false, investment: false },
+                
+                // Static Configurations matching specs
+                categories: {
+                    expense: {
+                        "Food & Drinks": ["Breakfast", "Lunch", "Dinner", "Coffee", "Snacks"],
+                        "Transportation": ["Fuel", "Parking", "Public Transport", "Online Taxi"],
+                        "Shopping": ["Clothes", "Beauty", "Electronics"],
+                        "Bills": ["Electricity", "Water", "Internet", "Phone"],
+                        "Health": ["Medicine", "Doctor"],
+                        "Entertainment": ["Movies", "Games"],
+                        "Travel": []
+                    },
+                    income: {
+                        "Salary": [], "Bonus": [], "Freelance": [], "Investment Return": [], "Other Income": []
+                    }
+                },
+
+                // Reactive Reactive State Fields
+                accounts: {
+                    BCA: { balance: 0 },
+                    "Allo Bank": { balance: 0 },
+                    Mandiri: { balance: 0 },
+                    Blu: { balance: 0 },
+                    Jago: { balance: 0 }
+                },
+                transactions: [],
+                savingsGoals: [
+                    { id: 1, name: 'Emergency Fund', target: 10000000, current: 2500000 },
+                    { id: 2, name: 'Vacation Fund', target: 15000000, current: 1500000 },
+                    { id: 3, name: 'Home Fund', target: 100000000, current: 0 }
+                ],
+                investments: [],
+
+                // Form Builders
+                subCategoriesList: [],
+                form: {
+                    tx: { id: null, type: 'Expense', amount: '', date: new Date().toISOString().split('T')[0], account: 'BCA', mainCategory: '', subCategory: '', transferTo: '', notes: '' },
+                    saving: { name: '', target: '', current: '' },
+                    investment: { name: 'Bibit', amount: '', notes: '', date: new Date().toISOString().split('T')[0] }
+                },
+
+                init() {
+                    // Pull from client LocalStorage if exists
+                    if (localStorage.getItem('fintrack_txs')) this.transactions = JSON.parse(localStorage.getItem('fintrack_txs'));
+                    if (localStorage.getItem('fintrack_savings')) this.savingsGoals = JSON.parse(localStorage.getItem('fintrack_savings'));
+                    if (localStorage.getItem('fintrack_investments')) this.investments = JSON.parse(localStorage.getItem('fintrack_investments'));
+                    this.updateCategories();
+                    this.recalculateBalances();
+                },
+
+                // Formatters
+                formatIDR(num) {
+                    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
+                },
+                formatDate(dateStr) {
+                    return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                },
+
+                // Form Utilities
+                openModal(type) { this.modals[type] = true; },
+                closeModal(type) { this.modals[type] = false; this.resetForms(); },
+                resetForms() {
+                    this.form.tx = { id: null, type: 'Expense', amount: '', date: new Date().toISOString().split('T')[0], account: 'BCA', mainCategory: '', subCategory: '', transferTo: '', notes: '' };
+                    this.form.saving = { name: '', target: '', current: '' };
+                    this.form.investment = { name: 'Bibit', amount: '', notes: '', date: new Date().toISOString().split('T')[0] };
+                    this.updateCategories();
+                },
+                updateCategories() {
+                    const type = this.form.tx.type.toLowerCase();
+                    if(type === 'expense' || type === 'income') {
+                        this.form.tx.mainCategory = Object.keys(this.categories[type])[0];
+                        this.updateSubCategories();
+                    }
+                },
+                updateSubCategories() {
+                    const type = this.form.tx.type.toLowerCase();
+                    if(type === 'expense' || type === 'income') {
+                        this.subCategoriesList = this.categories[type][this.form.tx.mainCategory] || [];
+                        this.form.tx.subCategory = this.subCategoriesList[0] || '';
+                    }
+                },
+
+                // Mutation Handlers
+                saveTransaction() {
+                    if (!this.form.tx.amount) return alert('Please input amount');
+                    
+                    if (this.form.tx.id) {
+                        const index = this.transactions.findIndex(t => t.id === this.form.tx.id);
+                        this.transactions[index] = { ...this.form.tx };
+                    } else {
+                        this.form.tx.id = Date.now();
+                        this.transactions.unshift({ ...this.form.tx });
+                    }
+                    
+                    this.persistAndRefresh();
+                    this.closeModal('transaction');
+                },
+                deleteTransaction(id) {
+                    this.transactions = this.transactions.filter(t => t.id !== id);
+                    this.persistAndRefresh();
+                },
+                editTransaction(tx) {
+                    this.form.tx = { ...tx };
+                    const type = this.form.tx.type.toLowerCase();
+                    if(type === 'expense' || type === 'income') {
+                        this.subCategoriesList = this.categories[type][this.form.tx.mainCategory] || [];
+                    }
+                    this.openModal('transaction');
+                },
+                saveSavingGoal() {
+                    if(!this.form.saving.name || !this.form.saving.target) return;
+                    this.savingsGoals.push({
+                        id: Date.now(),
+                        name: this.form.saving.name,
+                        target: this.form.saving.target,
+                        current: this.form.saving.current || 0
+                    });
+                    localStorage.setItem('fintrack_savings', JSON.stringify(this.savingsGoals));
+                    this.closeModal('saving');
+                },
+                saveInvestment() {
+                    if(!this.form.investment.amount) return;
+                    
+                    const newInv = { id: Date.now(), ...this.form.investment };
+                    this.investments.unshift(newInv);
+                    
+                    // Automatically track standard investment transaction inside transactions block
+                    this.transactions.unshift({
+                        id: Date.now() + 1,
+                        type: 'Investment',
+                        amount: newInv.amount,
+                        date: newInv.date,
+                        account: 'BCA',
+                        mainCategory: 'Investment Allocation',
+                        subCategory: newInv.name,
+                        notes: newInv.notes
+                    });
+
+                    localStorage.setItem('fintrack_investments', JSON.stringify(this.investments));
+                    this.persistAndRefresh();
+                    this.closeModal('investment');
+                },
+
+                persistAndRefresh() {
+                    localStorage.setItem('fintrack_txs', JSON.stringify(this.transactions));
+                    this.recalculateBalances();
+                },
+
+                recalculateBalances() {
+                    // Reset
+                    for (let acc in this.accounts) { this.accounts[acc].balance = 0; }
+                    
+                    // Recompute inverse stack order
+                    this.transactions.slice().reverse().forEach(tx => {
+                        const amt = Number(tx.amount);
+                        if (tx.type === 'Income') {
+                            if(this.accounts[tx.account]) this.accounts[tx.account].balance += amt;
+                        } else if (tx.type === 'Expense' || tx.type === 'Investment') {
+                            if(this.accounts[tx.account]) this.accounts[tx.account].balance -= amt;
+                        } else if (tx.type === 'Transfer') {
+                            if(this.accounts[tx.account]) this.accounts[tx.account].balance -= amt;
+                            if(this.accounts[tx.transferTo]) this.accounts[tx.transferTo].balance += amt;
+                        }
+                    });
+                },
+
+                // Metric Accumulators
+                getTotalIncome() { return this.transactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + Number(t.amount), 0); },
+                getTotalExpenses() { return this.transactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Number(t.amount), 0); },
+                getNetCashFlow() { return this.getTotalIncome() - this.getTotalExpenses(); },
+                getTotalSavings() { return this.savingsGoals.reduce((sum, g) => sum + Number(g.current), 0); },
+                getTotalInvestments() { return this.investments.reduce((sum, i) => sum + Number(i.amount), 0); },
+                
+                getAccountStats(acc) {
+                    const accTxs = this.transactions.filter(t => t.account === acc || t.transferTo === acc);
+                    let income = 0, expense = 0;
+                    accTxs.forEach(t => {
+                        if (t.type === 'Income' && t.account === acc) income += Number(t.amount);
+                        if (t.type === 'Expense' && t.account === acc) expense += Number(t.amount);
+                        if (t.type === 'Transfer' && t.transferTo === acc) income += Number(t.amount);
+                        if (t.type === 'Transfer' && t.account === acc) expense += Number(t.amount);
+                    });
+                    return { income, expense };
+                },
+
+                getExpenseByCategory() {
+                    let map = {};
+                    this.transactions.filter(t => t.type === 'Expense').forEach(t => {
+                        map[t.mainCategory] = (map[t.mainCategory] || 0) + Number(t.amount);
+                    });
+                    return map;
+                },
+
+                // UI Decoration Mappers
+                getTxColor(type) {
+                    return { Income: 'text-emerald-500', Expense: 'text-rose-500', Transfer: 'text-blue-500', Investment: 'text-amber-500' }[type];
+                },
+                getTxBg(type) {
+                    return { Income: 'bg-emerald-50 text-emerald-600', Expense: 'bg-rose-50 text-rose-600', Transfer: 'bg-blue-50 text-blue-600', Investment: 'bg-amber-50 text-amber-600' }[type];
+                },
+                getTxIcon(type) {
+                    return { Income: 'fa-solid fa-arrow-down-long', Expense: 'fa-solid fa-arrow-up-long', Transfer: 'fa-solid fa-right-left', Investment: 'fa-solid fa-arrow-trend-up' }[type];
+                }
+            }
+        }
+    </script>
+</body>
+</html>
